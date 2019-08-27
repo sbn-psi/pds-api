@@ -1,2 +1,2 @@
-PDS XYZ Tool
-Copyright 2019 California Institute of Technology
+PDS API
+Copyright 2019 Planetary Science Institute
