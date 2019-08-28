@@ -9,9 +9,14 @@ let fail = msg => new Promise((_, reject) => { reject(new Error(msg)) })
 
 function httpGet(endpoint, params) {
     const paramsWithDefaultsApplied = Object.assign(defaultParameters(), params)
-    return new Promise((resolve, reject) => 
-        request({ uri: endpoint, json: true, qs: paramsWithDefaultsApplied }).then(response => resolve(desolrize(response)), reject)
-    )
+    return new Promise(async (resolve, reject) => {
+        try {
+            let response = await request({ uri: endpoint, json: true, qs: paramsWithDefaultsApplied })
+            resolve(desolrize(response))
+        } catch (error) {
+            reject(error)
+        }
+    })
 }
 
 function httpGetIdentifiers(route, identifiers) {
@@ -54,21 +59,23 @@ function httpGetFull(endpoints) {
 }
 
 function httpGetRelated(initialQuery, route, knownLids) {
-    return new Promise((resolve, reject) => {
-        httpGet(route, initialQuery).then(results => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            let results = await httpGet(route, initialQuery)
             let foundLids = results.map(items => items.identifier)
             if(!knownLids || knownLids.length === 0 || arraysEquivalent(foundLids, knownLids)) {
                 // if we have all the referenced items, just return them
                 resolve(results)
             } else {
                 // otherwise, perform another query to get the other 
-                httpGetIdentifiers(route, knownLids).then(otherResults => {
-                    // and combine them with the original list
-                    let combined = [...results, ...otherResults]
-                    resolve(combined.filter((item, index) => combined.findIndex(otherItem => item.identifier === otherItem.identifier) === index))
-                }, reject)
+                let otherResults = await httpGetIdentifiers(route, knownLids)
+                // and combine them with the original list
+                let combined = [...results, ...otherResults]
+                resolve(combined.filter((item, index) => combined.findIndex(otherItem => item.identifier === otherItem.identifier) === index))
             }
-        }, reject)
+        } catch (error) {
+            reject(error)
+        }
     })
 }
 function arraysEquivalent(arr1, arr2) {
@@ -79,13 +86,14 @@ function arraysEquivalent(arr1, arr2) {
 function stitchWithWebFields(fields, route) {
     if(!fields.includes('logical_identifier')) { fields.push('logical_identifier')}
     return (previousResult) => {
-        return new Promise((resolve, _) => {
+        return new Promise(async (resolve, _) => {
             let identifiers = previousResult.map(doc => doc.identifier)
             let params = {
                 q: identifiers.reduce((query, lid) => query + 'logical_identifier:"' + lid + '" ', ''),
                 fl: fields.join()
             }
-            httpGet(route, params).then(webDocs => {
+            try {
+                let webDocs = await httpGet(route, params)
                 let toReturn = []
                 // combine documents by lid
                 for (let coreDoc of previousResult ) {
@@ -98,10 +106,10 @@ function stitchWithWebFields(fields, route) {
                     }
                 }
                 resolve(toReturn)
-            }, err => {
+            } catch (error) {
                 //ignore error, just pass original
                 resolve(previousResult)
-            })
+            }
         })
     }
 }

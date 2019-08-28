@@ -2,7 +2,7 @@ const router = require('./router.js')
 const LID = require('../LogicalIdentifier.js')
 const {httpGetFull, httpGet, httpGetRelated, stitchWithWebFields} = require('./common.js')
 
-export function lookupSpacecraft(lidvid) {
+function lookupSpacecraft(lidvid) {
     if(!lidvid) {
         return new Promise((_, reject) => reject(new Error("Expected spacecraft parameter")))
     }
@@ -26,7 +26,7 @@ export function lookupSpacecraft(lidvid) {
     ])
 }
 
-export function getMissionsForSpacecraft(spacecraft) {
+function getMissionsForSpacecraft(spacecraft) {
     let spacecraftLid = new LID(spacecraft.identifier)
     let knownMissions = spacecraft.investigation_ref
     let params = {
@@ -35,7 +35,7 @@ export function getMissionsForSpacecraft(spacecraft) {
     return httpGetRelated(params, router.missionsCore, knownMissions).then(stitchWithWebFields(['display_name', 'image_url', 'display_description'], router.missionsWeb))
 }
 
-export function getInstrumentsForSpacecraft(spacecraft) {
+function getInstrumentsForSpacecraft(spacecraft) {
     let spacecraftLid = new LID(spacecraft.identifier)
     let knownInstruments = spacecraft.instrument_ref
     let params = {
@@ -44,7 +44,7 @@ export function getInstrumentsForSpacecraft(spacecraft) {
     return httpGetRelated(params, router.instrumentsCore, knownInstruments).then(stitchWithWebFields(['display_name', 'is_prime'], router.instrumentsWeb))
 }
 
-export function getTargetsForSpacecraft(spacecraft) {
+function getTargetsForSpacecraft(spacecraft) {
     let spacecraftLid = new LID(spacecraft.identifier)
     let knownTargets = spacecraft.target_ref
     let params = {
@@ -53,7 +53,7 @@ export function getTargetsForSpacecraft(spacecraft) {
     return httpGetRelated(params, router.targetsCore, knownTargets).then(stitchWithWebFields(['display_name', 'is_major'], router.targetsWeb))
 }
 
-export function getDatasetsForSpacecraft(spacecraft) {
+function getDatasetsForSpacecraft(spacecraft) {
     let spacecraftLid = new LID(spacecraft.identifier)
 
     let params = {
@@ -61,3 +61,5 @@ export function getDatasetsForSpacecraft(spacecraft) {
     }
     return httpGet(router.datasetCore, params).then(stitchWithWebFields(['display_name', 'tags'], router.datasetWeb))
 }
+
+module.exports = { lookupSpacecraft, getMissionsForSpacecraft, getInstrumentsForSpacecraft, getTargetsForSpacecraft, getDatasetsForSpacecraft }

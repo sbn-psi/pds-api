@@ -2,7 +2,7 @@ const router = require('./router.js')
 const LID = require('../LogicalIdentifier.js')
 const {httpGetFull, httpGetRelated, stitchWithWebFields} = require('./common.js')
 
-export function lookupMission(lidvid) {
+function lookupMission(lidvid) {
     if(!lidvid) {
         return new Promise((_, reject) => reject(new Error("Expected mission parameter")))
     }
@@ -26,7 +26,7 @@ export function lookupMission(lidvid) {
     ])
 }
 
-export function getSpacecraftForMission(mission) {
+function getSpacecraftForMission(mission) {
     let missionLid = new LID(mission.identifier)
     let knownSpacecraft = mission.instrument_host_ref
     let params = {
@@ -35,7 +35,7 @@ export function getSpacecraftForMission(mission) {
     return httpGetRelated(params, router.spacecraftCore, knownSpacecraft).then(stitchWithWebFields(['display_name', 'image_url'], router.spacecraftWeb))
 }
 
-export function getTargetsForMission(mission) {
+function getTargetsForMission(mission) {
     let missionLid = new LID(mission.identifier)
     let knownTargets = mission.target_ref
     let params = {
@@ -43,3 +43,5 @@ export function getTargetsForMission(mission) {
     }
     return httpGetRelated(params, router.targetsCore, knownTargets).then(stitchWithWebFields(['display_name', 'is_major'], router.targetsWeb))
 }
+
+module.exports = { lookupMission, getSpacecraftForMission, getTargetsForMission }

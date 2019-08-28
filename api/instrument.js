@@ -2,7 +2,9 @@ const router = require('./router.js')
 const LID = require('../LogicalIdentifier.js')
 const {httpGetFull, httpGet, httpGetRelated, stitchWithWebFields, httpGetIdentifiers} = require('./common.js')
 
-export function lookupInstrument(lidvid) {
+let fail = msg => new Promise((_, reject) => { reject(new Error(msg)) })
+
+function lookupInstrument(lidvid) {
     if(!lidvid) {
         return new Promise((_, reject) => reject(new Error("Expected instrument parameter")))
     }
@@ -25,25 +27,27 @@ export function lookupInstrument(lidvid) {
     ])
 }
 
-export function getSpacecraftForInstrument(instrument) {
+function getSpacecraftForInstrument(instrument) {
     let instrumentLid = new LID(instrument.identifier)
     let knownSpacecraft = instrument.instrument_host_ref
     let params = {
         q: `instrument_ref:${instrumentLid.escapedLid}\\:\\:* AND data_class:"Instrument_Host"`
     }
-    return httpGetRelated(params, router.spacecraftCore, knownSpacecraft).then(stitchWithWebFields(['display_name', 'image_url'], router.spacecraftWeb))
+    return httpGetRelated(params, router.spacecraftCore, knownSpacecraft)
+        .then(stitchWithWebFields(['display_name', 'image_url'], router.spacecraftWeb), fail)
 }
 
-export function getDatasetsForInstrument(instrument) {
+function getDatasetsForInstrument(instrument) {
     let instrumentLid = new LID(instrument.identifier)
 
     let params = {
         q: `(instrument_ref:${instrumentLid.escapedLid}\\:\\:* AND (product_class:"Product_Bundle" OR product_class:"Product_Collection"))`
     }
-    return httpGet(router.datasetCore, params).then(stitchWithWebFields(['display_name', 'tags'], router.datasetWeb))
+    return httpGet(router.datasetCore, params)
+        .then(stitchWithWebFields(['display_name', 'tags'], router.datasetWeb), fail)
 }
 
-export function getRelatedInstrumentsForInstrument(instrument, prefetchedSpacecraft) {
+function getRelatedInstrumentsForInstrument(instrument, prefetchedSpacecraft) {
     
     if(!!prefetchedSpacecraft) { return gatherInstruments(prefetchedSpacecraft) }
 
@@ -60,9 +64,13 @@ export function getRelatedInstrumentsForInstrument(instrument, prefetchedSpacecr
     function gatherInstruments(spacecraft) {
         return new Promise((resolve, reject) => {
             let childrenLids = spacecraft[0].instrument_ref
-            httpGetIdentifiers(router.instrumentsCore, childrenLids).then(stitchWithWebFields(['display_name', 'is_prime'], router.instrumentsWeb)).then(children => {
-                resolve(children.filter(child => child.identifier !== instrument.identifier))
-            }, reject)
+            httpGetIdentifiers(router.instrumentsCore, childrenLids)
+                .then(stitchWithWebFields(['display_name', 'is_prime'], router.instrumentsWeb), reject)
+                .then(children => {
+                    resolve(children.filter(child => child.identifier !== instrument.identifier))
+                }, reject)
         })
     }
 }
+
+module.exports = { lookupInstrument, getSpacecraftForInstrument, getDatasetsForInstrument, getRelatedInstrumentsForInstrument }

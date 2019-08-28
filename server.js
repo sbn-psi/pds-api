@@ -1,9 +1,5 @@
 // external modules
 const assert = require('assert')
-const request = require('request-promise-native')
-
-// internal modules
-const desolrize = require('./desolrize.js')
 
 // express setup
 const express = require('express')
@@ -13,18 +9,35 @@ app.use(bodyParser.json())
 app.listen(8001)
 console.log('running on port 8001...')
 
-const SOLR = (process.env.SOLR ? process.env.SOLR : 'http://localhost:8983')
 
 const {lookupTarget} = require('./api/target.js')
 app.get('/lookup/target', function(req, res) {
-    
+    performLookup(lookupTarget, req, res)
+})
+const {lookupMission} = require('./api/mission.js')
+app.get('/lookup/mission', function(req, res) {
+    performLookup(lookupMission, req, res)
+})
+const {lookupSpacecraft} = require('./api/spacecraft.js')
+app.get('/lookup/spacecraft', function(req, res) {
+    performLookup(lookupSpacecraft, req, res)
+})
+const {lookupInstrument} = require('./api/instrument.js')
+app.get('/lookup/instrument', function(req, res) {
+    performLookup(lookupInstrument, req, res)
+})
+
+const performLookup = async function(lookup, req, res) {
     try {
         assert(req.query.lid, 'Expected lid argument')
         assert(req.query.lid.startsWith('urn:nasa:pds:'), 'Expected lid to start with urn:nasa:pds')
+        
+        let identifier = req.query.lid
+        let result = await lookup(identifier)
+        res.status(200).send(result)
     } catch (err) {
         res.status(400).send(err.message)
         return
     }
-    let identifier = req.query.lid
-    lookupTarget(identifier).then(obj => res.status(200).send(obj), err => res.status(500).send(err.message))
-})
+
+}
