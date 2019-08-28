@@ -1,5 +1,6 @@
 // external modules
 const assert = require('assert')
+require('dotenv').config({ path: 'services.env' })
 
 // express setup
 const express = require('express')
